@@ -1,0 +1,15 @@
+include .envrc
+MIGRATIONS_PATH = ./cmd/migrate/migrations
+
+# .PHONY is a prefix to specify that migrate-create is an action. But the action is actually "migration" Don't use space rather use tab
+.PHONY: migrate-create
+migration:
+	@migrate create -seq -ext sql -dir $(MIGRATIONS_PATH) $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: migrate-up
+migrate-up:
+	@migrate -path=$(MIGRATIONS_PATH) -database=$(DB_ADDR) up
+
+.PHONY: migrate-down
+migrate-down:
+	@migrate -path=$(MIGRATIONS_PATH) -database=$(DB_ADDR) down $(filter-out $@,$(MAKECMDGOALS))
