@@ -53,6 +53,7 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 		SELECT id, user_id, title, content, created_at, updated_at, tags FROM posts WHERE id = $1
 	`
 
+	// come back and check the comment slices
 	var post Post
 	err := s.db.QueryRowContext(ctx, query, postID).Scan(
 		&post.ID,
@@ -74,4 +75,37 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	}
 
 	return &post, nil
+}
+
+func (s *PostStore) Delete(ctx context.Context, postID int64) error {
+	query := `DELETE FROM posts WHERE id = $1`
+
+	res, err := s.db.ExecContext(ctx, query, postID)
+
+	if err != nil {
+		return err
+	}
+
+	row, err := res.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+
+	if row == 0 {
+		return ErrorNotFound
+	}
+
+	return nil
+}
+
+func (s *PostStore) Update(ctx context.Context, post *Post) error {
+	query := `UPDATE posts SET title = $1, content = $2 WHERE id = $3`
+
+	_, err := s.db.ExecContext(ctx, query, post.Title, post.Content, post.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
