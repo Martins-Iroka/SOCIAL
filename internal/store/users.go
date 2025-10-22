@@ -9,7 +9,7 @@ type User struct {
 	ID        int64  `json:"id"` //Json unmarshal
 	Username  string `json:"username"`
 	Email     string `json:"email"`
-	Password  int64  `json:"-"` // this indicates that password won't be returned to the user.
+	Password  string `json:"-"` // this indicates that password won't be returned to the user.
 	CreatedAt string `json:"created_at"`
 }
 
