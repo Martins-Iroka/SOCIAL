@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -23,6 +24,10 @@ type CreatePostPayload struct {
 type UpdatePostPayload struct {
 	Title   *string `json:"title" validate:"omitempty,max=100"`
 	Content *string `json:"content" validate:"omitempty,max=1000"`
+}
+
+type CommentPayload struct {
+	Content string `json:"content"`
 }
 
 func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +97,40 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (app *application) createCommentPostHandler(w http.ResponseWriter, r *http.Request) {
+	post := getPostFromCtx(r)
+
+	var payload CommentPayload
+	if err := readJSON(w, r, &payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	if err := Validate.Struct(payload); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	comment := &store.Comment{
+		Content: payload.Content,
+		PostID:  post.ID,
+		UserID:  post.UserID,
+	}
+
+	ctx := r.Context()
+
+	if err := app.store.Comments.CreateComment(ctx, comment); err != nil {
+		log.Println("error creating comments:", err)
+		app.internalServerError(w, r, err)
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusCreated, comment); err != nil {
+		app.internalServerError(w, r, err)
+		return
+	}
 }
 
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
