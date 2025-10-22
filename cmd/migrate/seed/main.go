@@ -16,6 +16,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	defer conn.Close()
+
 	store := store.NewPostgresStorage(conn)
 	db.Seed(store)
 }
