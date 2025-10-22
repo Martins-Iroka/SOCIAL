@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrorNotFound = errors.New("resource not found")
+	ErrorConflict = errors.New("conflict found modifying resource")
 )
 
 // This is repository pattern implementation
