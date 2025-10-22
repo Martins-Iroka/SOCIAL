@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 )
 
 var (
-	ErrorNotFound = errors.New("resource not found")
-	ErrorConflict = errors.New("conflict found modifying resource")
+	ErrorNotFound        = errors.New("resource not found")
+	ErrorConflict        = errors.New("conflict found modifying resource")
+	QueryTimeoutDuration = time.Second * 5
 )
 
 // This is repository pattern implementation
