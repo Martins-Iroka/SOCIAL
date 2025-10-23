@@ -22,7 +22,8 @@ type Storage struct {
 		Update(context.Context, *Post) error
 	}
 	Users interface {
-		Create(context.Context, *User) error
+		CreateUser(context.Context, *User) error
+		GetUserByID(context.Context, int64) (*User, error)
 	}
 	Comments interface {
 		CreateComment(context.Context, *Comment) error
