@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log"
+
+	"github.com/lib/pq"
 )
 
 type User struct {
@@ -12,6 +15,12 @@ type User struct {
 	Email     string `json:"email"`
 	Password  string `json:"-"` // - indicates that password won't be returned to the user upon calling the endpoint.
 	CreatedAt string `json:"created_at"`
+}
+
+type Follower struct {
+	UserID     int64 `json:"user_id"`
+	FollowerID int64 `json:"follower_id"`
+	CreatedAt  int64 `json:"created_at"`
 }
 
 type UserStore struct {
@@ -69,4 +78,45 @@ func (s *UserStore) GetUserByID(ctx context.Context, userID int64) (*User, error
 	}
 
 	return &user, nil
+}
+
+func (s *UserStore) FollowUser(ctx context.Context, followerID int64, userID int64) error {
+	query := `INSERT INTO followers (user_id, follower_id) VALUES ($1, $2)`
+
+	c, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	_, err := s.db.ExecContext(c, query, userID, followerID)
+	if err != nil {
+		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
+			return ErrorUserFollowConflict
+		}
+		return err
+	}
+	return err
+}
+
+func (s *UserStore) UnFollowUser(ctx context.Context, followerID int64, userID int64) error {
+	query := `DELETE FROM followers WHERE user_id = $1 AND follower_id = $2`
+
+	c, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	res, err := s.db.ExecContext(c, query, userID, followerID)
+	log.Println(err)
+	if err != nil {
+		return err
+	}
+
+	row, err := res.RowsAffected()
+
+	if err != nil {
+		return err
+	}
+
+	if row == 0 {
+		return ErrorNotFound
+	}
+
+	return nil
 }

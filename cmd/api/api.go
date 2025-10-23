@@ -59,8 +59,14 @@ func (app *application) mount() http.Handler {
 		})
 
 		r.Route("/users", func(r chi.Router) {
+
 			r.Route("/{userID}", func(r chi.Router) {
+				r.Use(app.userContextMiddleware)
 				r.Get("/", app.getUserHandler)
+
+				// Idempotency
+				r.Put("/follow", app.followUserHandler)
+				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 		})
 

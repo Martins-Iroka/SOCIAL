@@ -8,24 +8,28 @@ import (
 )
 
 var (
-	ErrorNotFound        = errors.New("resource not found")
-	ErrorConflict        = errors.New("conflict found modifying resource")
-	QueryTimeoutDuration = time.Second * 5
+	ErrorNotFound             = errors.New("resource not found")
+	ErrorConflict             = errors.New("conflict found modifying resource")
+	ErrorUserFollowConflict   = errors.New("you're following this user already")
+	ErrorUserUnFollowConflict = errors.New("you're unfollowing this user already")
+	QueryTimeoutDuration      = time.Second * 5
 )
 
 // This is repository pattern implementation
 type Storage struct {
-	Posts interface {
+	Post interface {
 		Create(context.Context, *Post) error
 		GetByID(context.Context, int64) (*Post, error)
 		Delete(context.Context, int64) error
 		Update(context.Context, *Post) error
 	}
-	Users interface {
+	User interface {
 		CreateUser(context.Context, *User) error
 		GetUserByID(context.Context, int64) (*User, error)
+		FollowUser(context.Context, int64, int64) error
+		UnFollowUser(context.Context, int64, int64) error
 	}
-	Comments interface {
+	Comment interface {
 		CreateComment(context.Context, *Comment) error
 		GetByPostID(ctx context.Context, postID int64) ([]Comment, error)
 	}
@@ -33,8 +37,8 @@ type Storage struct {
 
 func NewPostgresStorage(db *sql.DB) Storage {
 	return Storage{
-		Posts:    &PostStore{db: db},
-		Users:    &UserStore{db: db},
-		Comments: &CommentStore{db: db},
+		Post:    &PostStore{db: db},
+		User:    &UserStore{db: db},
+		Comment: &CommentStore{db: db},
 	}
 }

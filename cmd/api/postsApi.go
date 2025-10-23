@@ -52,7 +52,7 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 
 	ctx := r.Context()
 
-	if err := app.store.Posts.Create(ctx, post); err != nil {
+	if err := app.store.Post.Create(ctx, post); err != nil {
 		app.internalServerError(w, r, err)
 		return
 	}
@@ -68,7 +68,7 @@ func (app *application) getPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	comments, err := app.store.Comments.GetByPostID(ctx, post.ID)
+	comments, err := app.store.Comment.GetByPostID(ctx, post.ID)
 	if err != nil {
 		app.internalServerError(w, r, errors.New(err.Error()+" from comments getbypostid"))
 		return
@@ -87,7 +87,7 @@ func (app *application) deletePostHandler(w http.ResponseWriter, r *http.Request
 
 	ctx := r.Context()
 
-	if err := app.store.Posts.Delete(ctx, post.ID); err != nil {
+	if err := app.store.Post.Delete(ctx, post.ID); err != nil {
 		switch {
 		case errors.Is(err, store.ErrorNotFound):
 			app.notFoundResponse(w, r, err)
@@ -121,7 +121,7 @@ func (app *application) createCommentPostHandler(w http.ResponseWriter, r *http.
 
 	ctx := r.Context()
 
-	if err := app.store.Comments.CreateComment(ctx, comment); err != nil {
+	if err := app.store.Comment.CreateComment(ctx, comment); err != nil {
 		log.Println("error creating comments:", err)
 		app.internalServerError(w, r, err)
 		return
@@ -156,7 +156,7 @@ func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request
 		post.Title = *payload.Title
 	}
 
-	if err := app.store.Posts.Update(r.Context(), post); err != nil {
+	if err := app.store.Post.Update(r.Context(), post); err != nil {
 		switch {
 		case errors.Is(err, store.ErrorConflict):
 			app.conflictResponse(w, r, err)
@@ -184,7 +184,7 @@ func (app *application) postsContextMiddleware(next http.Handler) http.Handler {
 		// context cannot be mutated or changed but we have to create a new context
 		ctx := r.Context()
 
-		post, err := app.store.Posts.GetByID(ctx, id)
+		post, err := app.store.Post.GetByID(ctx, id)
 		if err != nil {
 			switch {
 			case errors.Is(err, store.ErrorNotFound):
