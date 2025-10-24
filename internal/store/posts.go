@@ -3,22 +3,24 @@ package store
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/lib/pq"
 )
 
 type Post struct {
-	ID        int64     `json:"id"` //Json unmarshal
-	Content   string    `json:"content"`
-	Title     string    `json:"title"`
-	UserID    int64     `json:"user_id"`
-	Tags      []string  `json:"tags"`
-	CreatedAt string    `json:"created_at"`
-	UpdatedAt string    `json:"updated_at"`
-	Version   string    `json:"version"`
-	Comments  []Comment `json:"comments"`
-	User      User      `json:"user"`
+	ID        int64       `json:"id"` //Json unmarshal
+	Content   string      `json:"content"`
+	Title     string      `json:"title"`
+	UserID    int64       `json:"user_id"`
+	Tags      []string    `json:"tags"`
+	CreatedAt string      `json:"created_at"`
+	UpdatedAt string      `json:"updated_at"`
+	Version   string      `json:"version"`
+	Comments  CommentList `json:"comments"`
+	User      User        `json:"user"`
 }
 
 type PostWithMetadata struct {
@@ -91,14 +93,73 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	return &post, nil
 }
 
+// CommentList implements sql.Scanner for JSONB array data
+type CommentList []Comment
+
+func (cl *CommentList) Scan(src interface{}) error {
+	var source []byte
+	switch v := src.(type) {
+	case string:
+		source = []byte(v)
+	case []byte:
+		source = v
+	case nil:
+		*cl = CommentList{}
+		return nil
+	default:
+		return fmt.Errorf("unsupported type for CommentList scan: %T", src)
+	}
+	return json.Unmarshal(source, cl)
+}
 func (s *PostStore) GetUserFeed(ctx context.Context, userID int64) ([]PostWithMetadata, error) {
+	// query := `
+	// 	SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username,
+	// 	COUNT(c.id) AS comments_count FROM posts p LEFT JOIN comments c ON c.post_id = p.id
+	// 	LEFT JOIN users u ON p.user_id = u.id JOIN followers f ON f.follower_id = p.user_id OR
+	// 	p.user_id = $1 WHERE f.user_id = $1 OR p.user_id = $1 GROUP BY p.id, u.username
+	// 	ORDER BY p.created_at DESC
+	// `
 	query := `
-		SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username,
-		COUNT(c.id) AS comments_count FROM posts p LEFT JOIN comments c ON c.post_id = p.id
-		LEFT JOIN users u ON p.user_id = u.id JOIN followers f ON f.follower_id = p.user_id OR
-		p.user_id = $1 WHERE f.user_id = $1 OR p.user_id = $1 GROUP BY p.id, u.username
-		ORDER BY p.created_at DESC
-	`
+        SELECT
+            p.id, p.user_id, p.title, p.content, p.created_at, p.version,
+            p.tags,
+            u.username,
+            COALESCE(
+                c_agg.comments_json,
+                '[]'::jsonb
+            ) AS comments, -- Aggregated comments array
+            (SELECT COUNT(c.id) FROM comments c WHERE c.post_id = p.id) AS comments_count -- Simpler way to get count
+        FROM
+            posts p
+        LEFT JOIN
+            users u ON p.user_id = u.id
+        -- Aggregation of comments into a JSON array for each post
+        LEFT JOIN LATERAL (
+            SELECT
+                JSONB_AGG(
+                    JSONB_BUILD_OBJECT(
+                        'id', c.id,
+                        'content', c.content,
+                        'created_at', c.created_at,
+                        'user', JSONB_BUILD_OBJECT(
+                            'id', cu.id,
+                            'username', cu.username
+                        )
+                    )
+                ) AS comments_json
+            FROM
+                comments c
+            LEFT JOIN
+                users cu ON c.user_id = cu.id
+            WHERE
+                c.post_id = p.id
+        ) c_agg ON TRUE
+        -- Feed Logic
+        JOIN followers f ON f.follower_id = p.user_id OR p.user_id = $1
+        WHERE f.user_id = $1 OR p.user_id = $1
+        GROUP BY p.id, u.username, c_agg.comments_json
+        ORDER BY p.created_at DESC
+    `
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
@@ -121,6 +182,7 @@ func (s *PostStore) GetUserFeed(ctx context.Context, userID int64) ([]PostWithMe
 			&p.Version,
 			pq.Array(&p.Tags),
 			&p.User.Username,
+			&p.Comments,
 			&p.CommentCount,
 		)
 		if err != nil {
