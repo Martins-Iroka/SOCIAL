@@ -9,10 +9,28 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type FollowUser struct {
+	UserID int64 `json:"user_id"`
+}
+
 type userKey string
 
 const userContextKey userKey = "user"
 
+// GetUser godoc
+//
+//	@summary		Fetches a user
+//	@description	Fetches a user profile by ID
+//	@tags			users
+//	@accept			json
+//	@produce		json
+//	@param			userID	path		int	true	"User ID"
+//	@success		200		{object}	store.User
+//	@failure		400		{object}	error
+//	@failure		404		{object}	error
+//	@failure		500		{object}	error
+//	@security		ApiKeyAuth
+//	@router			/users/{userID}	[get]
 func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 
@@ -21,10 +39,20 @@ func (app *application) getUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type FollowUser struct {
-	UserID int64 `json:"user_id"`
-}
-
+// Follow User godoc
+//
+//	@summary		Follows a user
+//	@description	Follows a user by ID
+//	@tags			users
+//	@accept			json
+//	@produce		json
+//	@param			userID	path		int		true	"User ID"
+//	@success		204		{string}	string	"User followed"
+//	@failure		400		{object}	error
+//	@failure		404		{object}	error	"User not found"
+//	@failure		500		{object}	error
+//	@security		ApiKeyAuth
+//	@router			/users/{userID}/follow	[put]
 func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 
@@ -50,6 +78,20 @@ func (app *application) followUserHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// Unfollow User godoc
+//
+//	@summary		Unfollows a user
+//	@description	Unfollows a user by ID
+//	@tags			users
+//	@accept			json
+//	@produce		json
+//	@param			userID	path		int		true	"User ID"
+//	@success		204		{string}	string	"User unfollowed"
+//	@failure		400		{object}	error
+//	@failure		404		{object}	error	"User not found"
+//	@failure		500		{object}	error
+//	@security		ApiKeyAuth
+//	@router			/users/{id}/unfollow	[put]
 func (app *application) unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 	user := getUserFromContext(r)
 
