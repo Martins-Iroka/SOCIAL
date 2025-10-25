@@ -20,7 +20,8 @@ type Storage struct {
 	Post interface {
 		Create(context.Context, *Post) error
 		GetByID(context.Context, int64) (*Post, error)
-		GetUserFeed(context.Context, int64, int16, int16, string) ([]PostWithMetadata, error)
+		GetUserFeed(
+			context.Context, int64, *PaginatedFeedQuery) ([]PostWithMetadata, error)
 		Delete(context.Context, int64) error
 		Update(context.Context, *Post) error
 	}

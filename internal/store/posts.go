@@ -31,6 +31,16 @@ type PostWithMetadata struct {
 	CommentCount int `json:"comments_count"`
 }
 
+type PaginatedFeedQuery struct {
+	Limit  int      `json:"limit" validate:"gte=1,lte=20"`
+	Offset int      `json:"offset" validate:"gte=0"`
+	Sort   string   `json:"sort" validate:"oneof=asc desc"`
+	Tags   []string `json:"tags" validate:"max=5"`
+	Search string   `json:"search" validate:"max=100"`
+	Since  string   `json:"since"`
+	Until  string   `json:"until"`
+}
+
 type PostStore struct {
 	db *sql.DB
 }
@@ -96,13 +106,15 @@ func (s *PostStore) GetByID(ctx context.Context, postID int64) (*Post, error) {
 	return &post, nil
 }
 
-func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, limit int16, offset int16, sort string) ([]PostWithMetadata, error) {
+func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, feedQuery *PaginatedFeedQuery) ([]PostWithMetadata, error) {
 	// query := `
 	// 	SELECT p.id, p.user_id, p.title, p.content, p.created_at, p.version, p.tags, u.username,
 	// 	COUNT(c.id) AS comments_count FROM posts p LEFT JOIN comments c ON c.post_id = p.id
 	// 	LEFT JOIN users u ON p.user_id = u.id JOIN followers f ON f.follower_id = p.user_id OR
 	// 	p.user_id = $1 WHERE f.user_id = $1 OR p.user_id = $1 GROUP BY p.id, u.username
 	// 	ORDER BY p.created_at DESC
+	// OR (p.title ILIKE '%' || $4 || '%' OR p.content ILIKE '%' || $4 || '%')
+	//OR (p.tags @> $5 OR $5 = '{}')
 	// `
 	query := `
         SELECT
@@ -141,16 +153,17 @@ func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, limit int16, 
         ) c_agg ON TRUE
         -- Feed Logic
         JOIN followers f ON f.follower_id = p.user_id OR p.user_id = $1
-        WHERE f.user_id = $1 OR p.user_id = $1
+        WHERE f.user_id = $1 OR p.user_id = $1 -- come back and filter
         GROUP BY p.id, u.username, c_agg.comments_json
-        ORDER BY p.created_at ` + sort + `
+        ORDER BY p.created_at ` + feedQuery.Sort + `
 		LIMIT $2 OFFSET $3
     `
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
-	rows, err := s.db.QueryContext(ctx, query, userID, limit, offset)
+	rows, err := s.db.QueryContext(
+		ctx, query, userID, feedQuery.Limit, feedQuery.Offset)
 	if err != nil {
 		return nil, err
 	}

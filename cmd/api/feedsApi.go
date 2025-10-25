@@ -1,10 +1,14 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/Martins-Iroka/social/internal/store"
+)
 
 func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Request) {
 
-	fq := PaginatedFeedQuery{
+	fq := PaginatedFeedQueryAPi{
 		Limit:  20,
 		Offset: 0,
 		Sort:   "desc",
@@ -21,9 +25,19 @@ func (app *application) getUserFeedHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	feedQuery := &store.PaginatedFeedQuery{
+		Limit:  fq.Limit,
+		Offset: fq.Offset,
+		Sort:   fq.Sort,
+		Tags:   fq.Tags,
+		Search: fq.Search,
+		Since:  fq.Since,
+		Until:  fq.Until,
+	}
+
 	ctx := r.Context()
 
-	feed, err := app.store.Post.GetUserFeed(ctx, int64(1), int16(fq.Limit), int16(fq.Offset), fq.Sort)
+	feed, err := app.store.Post.GetUserFeed(ctx, int64(1), feedQuery)
 	if err != nil {
 		app.internalServerError(w, r, err)
 		return
