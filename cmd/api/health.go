@@ -14,6 +14,7 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 	data := map[string]string{
 		"status":  "ok",
 		"version": version,
+		"env":     app.config.env,
 	}
 
 	if err := jsonResponse(w, http.StatusOK, data); err != nil {

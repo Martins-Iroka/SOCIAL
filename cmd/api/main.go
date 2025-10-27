@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/Martins-Iroka/social/internal/db"
 	"github.com/Martins-Iroka/social/internal/env"
 	"github.com/Martins-Iroka/social/internal/store"
@@ -35,6 +37,10 @@ func main() {
 			maxOpenConns: env.GetInt("DB_MAX_OPEN_CONNS", 30), // this set an upper limit of open connection to your connection pool.
 			maxIdleConns: env.GetInt("DB_MAX_IDLE_CONNS", 30), // having more takes resources but improves performance
 			maxIdleTime:  env.GetString("DB_MAX_IDLE_TIME", "15m"),
+		},
+		env: env.GetString("ENV", "development"),
+		mail: mailConfig{
+			expiry: time.Hour * 24 * 3, // 3 days
 		},
 	}
 

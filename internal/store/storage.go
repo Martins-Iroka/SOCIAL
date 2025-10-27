@@ -12,6 +12,8 @@ var (
 	ErrorConflict             = errors.New("conflict found modifying resource")
 	ErrorUserFollowConflict   = errors.New("you're following this user already")
 	ErrorUserUnFollowConflict = errors.New("you're unfollowing this user already")
+	ErrorDuplicateEmail       = errors.New("a user with that email already exists")
+	ErrorDuplicateUsername    = errors.New("a user with that username already exists")
 	QueryTimeoutDuration      = time.Second * 5
 )
 
@@ -26,7 +28,9 @@ type Storage struct {
 		Update(context.Context, *Post) error
 	}
 	User interface {
-		CreateUser(context.Context, *User) error
+		ActivateUser(ctx context.Context, token string) error
+		CreateUser(context.Context, *sql.Tx, *User) error
+		CreateAndInviteUser(ctx context.Context, user *User, token string, time time.Duration) error
 		GetUserByID(context.Context, int64) (*User, error)
 		FollowUser(context.Context, int64, int64) error
 		UnFollowUser(context.Context, int64, int64) error
@@ -43,4 +47,19 @@ func NewPostgresStorage(db *sql.DB) Storage {
 		User:    &UserStore{db: db},
 		Comment: &CommentStore{db: db},
 	}
+}
+
+func withTransaction(db *sql.DB, ctx context.Context, fn func(*sql.Tx) error) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	return tx.Commit()
+
 }

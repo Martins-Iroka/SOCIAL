@@ -149,3 +149,33 @@ func getUserFromContext(r *http.Request) *store.User {
 	user, _ := r.Context().Value(userContextKey).(*store.User)
 	return user
 }
+
+// ActivateUser godoc
+//
+//	@summary		Activates/Register a user
+//	@description	Activates/Register a user by invitation token
+//	@tags			users
+//	@produce		json
+//	@param			token	path		string	true	"Invitation token"
+//	@success		204		{string}	string	"User activated"
+//	@failure		404		{object}	error
+//	@failure		500		{object}	error
+//	@security		ApiKeyAuth
+//	@router			/users/activate/{token} [put]
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+
+	if err := app.store.User.ActivateUser(r.Context(), token); err != nil {
+		switch err {
+		case store.ErrorNotFound:
+			app.notFoundResponse(w, r, err)
+		default:
+			app.internalServerError(w, r, err)
+		}
+		return
+	}
+
+	if err := jsonResponse(w, http.StatusNoContent, nil); err != nil {
+		app.internalServerError(w, r, err)
+	}
+}
