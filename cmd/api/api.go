@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Martins-Iroka/social/docs"
+	"github.com/Martins-Iroka/social/internal/mailer"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,18 +19,26 @@ type application struct {
 	config config
 	store  store.Storage
 	logger *zap.SugaredLogger
+	mailer mailer.Client
 }
 
 type config struct {
-	addr   string
-	db     dbConfig
-	apiUrl string
-	env    string
-	mail   mailConfig
+	addr        string
+	db          dbConfig
+	apiUrl      string
+	env         string
+	mail        mailConfig
+	frontendURL string
 }
 
 type mailConfig struct {
-	expiry time.Duration
+	sendGrid  sendGridConfig
+	fromEmail string
+	expiry    time.Duration
+}
+
+type sendGridConfig struct {
+	apiKey string
 }
 
 type dbConfig struct {
@@ -111,7 +120,7 @@ func (app *application) run(mux http.Handler) error {
 		IdleTimeout:  time.Minute,
 	}
 
-	app.logger.Infow("server has started", "addr", app.config.addr)
+	app.logger.Infow("server has started", "addr", app.config.addr, "env", app.config.env)
 
 	return srv.ListenAndServe()
 }
