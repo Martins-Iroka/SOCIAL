@@ -22,6 +22,14 @@ type application struct {
 	mailer mailer.Client
 }
 
+type authConfig struct {
+	basic basicConfig
+}
+
+type basicConfig struct {
+	user, pass string
+}
+
 type config struct {
 	addr        string
 	db          dbConfig
@@ -29,6 +37,7 @@ type config struct {
 	env         string
 	mail        mailConfig
 	frontendURL string
+	auth        authConfig
 }
 
 type mailConfig struct {
@@ -65,7 +74,7 @@ func (app *application) mount() http.Handler {
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/health", app.healthCheckHandler)
+		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
