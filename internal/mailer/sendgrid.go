@@ -1,11 +1,7 @@
 package mailer
 
 import (
-	"bytes"
-	"fmt"
-	"html/template"
 	"log"
-	"time"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -34,17 +30,7 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 	to := mail.NewEmail(username, email)
 
 	//template parsing and building
-	tmpl, error := template.ParseFS(FS, "template/"+templateFile)
-	if error != nil {
-		return error
-	}
-	subject := new(bytes.Buffer)
-	err := tmpl.ExecuteTemplate(subject, "subject", data)
-	if err != nil {
-		return err
-	}
-	body := new(bytes.Buffer)
-	err = tmpl.ExecuteTemplate(body, "body", data)
+	subject, body, err := parseTemplate(templateFile, data)
 	if err != nil {
 		return err
 	}
@@ -59,20 +45,31 @@ func (m *SendGridMailer) Send(templateFile, username, email string, data any, is
 		},
 	)
 
-	for i := range maxRetries {
+	// for i := range maxRetries {
+	// 	response, err := m.client.Send(message)
+	// 	if err != nil {
+	// 		log.Printf("Failed to send email to %v, attempt %d of %d", email, i+1, maxRetries)
+	// 		log.Printf("Error: %v", err.Error())
+
+	// 		// exponential backoff which delays for period before send a mail again in case an error occurs.
+	// 		time.Sleep(time.Second * time.Duration(i+1))
+	// 		continue
+	// 	}
+
+	// 	log.Printf("Email - %v sent with status code %v", email, response.StatusCode)
+	// 	return nil
+	// }
+
+	// return fmt.Errorf("failed to send email after %d attemps", maxRetries)
+
+	err = handleRetries(email, func() error {
 		response, err := m.client.Send(message)
 		if err != nil {
-			log.Printf("Failed to send email to %v, attempt %d of %d", email, i+1, maxRetries)
-			log.Printf("Error: %v", err.Error())
-
-			// exponential backoff which delays for period before send a mail again in case an error occurs.
-			time.Sleep(time.Second * time.Duration(i+1))
-			continue
+			return err
 		}
-
 		log.Printf("Email - %v sent with status code %v", email, response.StatusCode)
 		return nil
-	}
+	})
 
-	return fmt.Errorf("failed to send email after %d attemps", maxRetries)
+	return err
 }
