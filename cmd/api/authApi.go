@@ -90,6 +90,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		ActivationURL: activationURL,
 	}
 
+	// this is synchronous because jsonResponse waits for this function to return before running.
+	// a message queue could solve this.
 	err := app.mailer.Send(mailer.UserWelcomeTemplate, user.Username, user.Email, vars, !isProdEnv)
 	if err != nil {
 		app.logger.Errorw("error sending welcome email", "error", err)
