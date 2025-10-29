@@ -35,6 +35,7 @@ type Storage struct {
 		FollowUser(context.Context, int64, int64) error
 		UnFollowUser(context.Context, int64, int64) error
 		DeleteUser(context.Context, int64) error
+		GetUserByEmail(context.Context, string) (*User, error)
 	}
 	Comment interface {
 		CreateComment(context.Context, *Comment) error

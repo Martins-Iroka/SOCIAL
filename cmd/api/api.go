@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Martins-Iroka/social/docs"
+	"github.com/Martins-Iroka/social/internal/auth"
 	"github.com/Martins-Iroka/social/internal/mailer"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -16,14 +17,22 @@ import (
 
 // this application struct represent dependencies.
 type application struct {
-	config config
-	store  store.Storage
-	logger *zap.SugaredLogger
-	mailer mailer.Client
+	config        config
+	store         store.Storage
+	logger        *zap.SugaredLogger
+	mailer        mailer.Client
+	authenticator auth.Authenticator
 }
 
 type authConfig struct {
 	basic basicConfig
+	token tokenConfig
+}
+
+type tokenConfig struct {
+	secret string
+	exp    time.Duration
+	iss    string
 }
 
 type basicConfig struct {
@@ -113,6 +122,7 @@ func (app *application) mount() http.Handler {
 
 		r.Route("/authentication", func(r chi.Router) {
 			r.Post("/user", app.registerUserHandler)
+			r.Post("/token", app.createTokenHandler)
 		})
 
 	})
