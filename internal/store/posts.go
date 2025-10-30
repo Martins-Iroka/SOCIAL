@@ -169,7 +169,9 @@ func (s *PostStore) GetUserFeed(ctx context.Context, userID int64, feedQuery *Pa
 	}
 
 	defer rows.Close()
+
 	var feed []PostWithMetadata
+
 	for rows.Next() {
 		var p PostWithMetadata
 		err := rows.Scan(

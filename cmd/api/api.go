@@ -89,6 +89,7 @@ func (app *application) mount() http.Handler {
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		r.Route("/posts", func(r chi.Router) {
+			r.Use(app.AuthTokenMiddleware)
 			r.Post("/", app.createPostHandler)
 
 			r.Route("/{postID}", func(r chi.Router) {
@@ -98,7 +99,7 @@ func (app *application) mount() http.Handler {
 
 				r.Delete("/", app.deletePostHandler)
 
-				r.Patch("/", app.updatePostHandler)
+				r.Put("/", app.updatePostHandler)
 
 				r.Post("/comments", app.createCommentPostHandler)
 			})
@@ -108,7 +109,7 @@ func (app *application) mount() http.Handler {
 			r.Put("/activate/{token}", app.activateUserHandler)
 
 			r.Route("/{userID}", func(r chi.Router) {
-				r.Use(app.userContextMiddleware)
+				r.Use(app.AuthTokenMiddleware, app.userContextMiddleware)
 				r.Get("/", app.getUserHandler)
 
 				// Idempotency
@@ -116,6 +117,7 @@ func (app *application) mount() http.Handler {
 				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 			r.Group(func(r chi.Router) {
+				r.Use(app.AuthTokenMiddleware)
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})

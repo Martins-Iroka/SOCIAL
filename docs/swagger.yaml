@@ -336,7 +336,7 @@ paths:
       summary: Fetches a post
       tags:
       - posts
-    patch:
+    put:
       consumes:
       - application/json
       description: Updates a post by ID

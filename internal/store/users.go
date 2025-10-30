@@ -48,6 +48,10 @@ func (p *password) Set(text string) error {
 	return nil
 }
 
+func (p *password) ComparePassword(plainText string) error {
+	return bcrypt.CompareHashAndPassword(p.hash, []byte(plainText))
+}
+
 func (s *UserStore) CreateUser(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
 		INSERT INTO users (username, password, email) VALUES ($1, $2, $3)
@@ -96,7 +100,7 @@ func (s *UserStore) CreateAndInviteUser(ctx context.Context, user *User, token s
 
 func (s *UserStore) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	query := `
-		SELECT id, username, email FROM users WHERE id = $1 AND is_active = true
+		SELECT id, username, email, is_active FROM users WHERE id = $1 AND is_active = true
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
@@ -108,6 +112,7 @@ func (s *UserStore) GetUserByID(ctx context.Context, userID int64) (*User, error
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.IsActive,
 	)
 
 	if err != nil {
@@ -203,7 +208,7 @@ func (s *UserStore) DeleteUser(ctx context.Context, userID int64) error {
 
 func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	query := `
-		SELECT id FROM users WHERE email = $1 AND is_active = true
+		SELECT id, password FROM users WHERE email = $1 AND is_active = true
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
@@ -213,6 +218,7 @@ func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (*User, er
 
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
 		&user.ID,
+		&user.Password.hash,
 	)
 
 	if err != nil {

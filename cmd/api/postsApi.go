@@ -55,12 +55,13 @@ func (app *application) createPostHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	user := getUserFromContext(r)
+
 	post := &store.Post{
 		Title:   payload.Title,
 		Content: payload.Content,
 		Tags:    payload.Tags,
-		// Todo: change after auth
-		UserID: 1,
+		UserID:  user.ID,
 	}
 
 	ctx := r.Context()
@@ -197,7 +198,7 @@ func (app *application) createCommentPostHandler(w http.ResponseWriter, r *http.
 //	@Failure		404		{object}	error
 //	@Failure		500		{object}	error
 //	@Security		ApiKeyAuth
-//	@Router			/posts/{id} [patch]
+//	@Router			/posts/{id} [put]
 func (app *application) updatePostHandler(w http.ResponseWriter, r *http.Request) {
 	post := getPostFromCtx(r)
 

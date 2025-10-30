@@ -1,6 +1,10 @@
 package auth
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"fmt"
+
+	"github.com/golang-jwt/jwt/v5"
+)
 
 // the secret should be stored in environment variables
 type JWTAuthenticator struct {
@@ -27,5 +31,15 @@ func (a *JWTAuthenticator) GenerateToken(claims jwt.Claims) (string, error) {
 }
 
 func (a *JWTAuthenticator) ValidateToken(token string) (*jwt.Token, error) {
-	return nil, nil
+	return jwt.Parse(token, func(t *jwt.Token) (any, error) { // refer to Parse doc
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected siging method %v", t.Header["alg"])
+		}
+
+		return []byte(a.secret), nil
+	},
+		jwt.WithExpirationRequired(),
+		jwt.WithAudience(a.aud),
+		jwt.WithIssuer(a.aud),
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Name}))
 }
