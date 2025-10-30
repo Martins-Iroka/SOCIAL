@@ -56,7 +56,8 @@ func (p *password) ComparePassword(plainText string) error {
 
 func (s *UserStore) CreateUser(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
-		INSERT INTO users (username, password, email, role_id) VALUES ($1, $2, $3, $4)
+		INSERT INTO users (username, password, email, role_id) 
+		VALUES ($1, $2, $3, (SELECT id FROM roles WHERE name = $4))
 		RETURNING id, created_at 
 	`
 
@@ -69,7 +70,7 @@ func (s *UserStore) CreateUser(ctx context.Context, tx *sql.Tx, user *User) erro
 		user.Username,
 		user.Password.hash,
 		user.Email,
-		user.RoleID,
+		user.Role.Name,
 	).Scan(
 		&user.ID,
 		&user.CreatedAt,
