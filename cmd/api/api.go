@@ -83,13 +83,13 @@ func (app *application) mount() http.Handler {
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
-		r.With(app.BasicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+		r.With(app.basicAuthMiddleware()).Get("/health", app.healthCheckHandler)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))
 
 		r.Route("/posts", func(r chi.Router) {
-			r.Use(app.AuthTokenMiddleware)
+			r.Use(app.authTokenMiddleware)
 			r.Post("/", app.createPostHandler)
 
 			r.Route("/{postID}", func(r chi.Router) {
@@ -97,9 +97,9 @@ func (app *application) mount() http.Handler {
 
 				r.Get("/", app.getPostHandler)
 
-				r.Delete("/", app.deletePostHandler)
+				r.Delete("/", app.checkPostOwnership("admin", app.deletePostHandler))
 
-				r.Put("/", app.updatePostHandler)
+				r.Put("/", app.checkPostOwnership("moderator", app.updatePostHandler))
 
 				r.Post("/comments", app.createCommentPostHandler)
 			})
@@ -109,7 +109,7 @@ func (app *application) mount() http.Handler {
 			r.Put("/activate/{token}", app.activateUserHandler)
 
 			r.Route("/{userID}", func(r chi.Router) {
-				r.Use(app.AuthTokenMiddleware, app.userContextMiddleware)
+				r.Use(app.authTokenMiddleware, app.userContextMiddleware)
 				r.Get("/", app.getUserHandler)
 
 				// Idempotency
@@ -117,7 +117,7 @@ func (app *application) mount() http.Handler {
 				r.Put("/unfollow", app.unfollowUserHandler)
 			})
 			r.Group(func(r chi.Router) {
-				r.Use(app.AuthTokenMiddleware)
+				r.Use(app.authTokenMiddleware)
 				r.Get("/feed", app.getUserFeedHandler)
 			})
 		})

@@ -20,6 +20,8 @@ type User struct {
 	Password  password `json:"-"` // - indicates that password won't be returned to the user upon calling the endpoint.
 	CreatedAt string   `json:"created_at"`
 	IsActive  bool     `json:"is_active"`
+	RoleID    int64    `json:"role_id"`
+	Role      Role     `json:"role"`
 }
 
 type Follower struct {
@@ -54,7 +56,7 @@ func (p *password) ComparePassword(plainText string) error {
 
 func (s *UserStore) CreateUser(ctx context.Context, tx *sql.Tx, user *User) error {
 	query := `
-		INSERT INTO users (username, password, email) VALUES ($1, $2, $3)
+		INSERT INTO users (username, password, email, role_id) VALUES ($1, $2, $3, $4)
 		RETURNING id, created_at 
 	`
 
@@ -67,6 +69,7 @@ func (s *UserStore) CreateUser(ctx context.Context, tx *sql.Tx, user *User) erro
 		user.Username,
 		user.Password.hash,
 		user.Email,
+		user.RoleID,
 	).Scan(
 		&user.ID,
 		&user.CreatedAt,
@@ -100,7 +103,9 @@ func (s *UserStore) CreateAndInviteUser(ctx context.Context, user *User, token s
 
 func (s *UserStore) GetUserByID(ctx context.Context, userID int64) (*User, error) {
 	query := `
-		SELECT id, username, email, is_active FROM users WHERE id = $1 AND is_active = true
+		SELECT users.id, username, email, is_active, roles.* FROM users 
+		JOIN roles ON (users.role_id = roles.id)
+		WHERE users.id = $1 AND is_active = true
 	`
 
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
@@ -113,6 +118,10 @@ func (s *UserStore) GetUserByID(ctx context.Context, userID int64) (*User, error
 		&user.Username,
 		&user.Email,
 		&user.IsActive,
+		&user.Role.ID,
+		&user.Role.Name,
+		&user.Role.Level,
+		&user.Role.Description,
 	)
 
 	if err != nil {

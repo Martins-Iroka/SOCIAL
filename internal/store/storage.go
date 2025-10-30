@@ -41,6 +41,9 @@ type Storage struct {
 		CreateComment(context.Context, *Comment) error
 		GetByPostID(ctx context.Context, postID int64) ([]Comment, error)
 	}
+	Roles interface {
+		GetByName(context.Context, string) (*Role, error)
+	}
 }
 
 func NewPostgresStorage(db *sql.DB) Storage {
@@ -48,6 +51,7 @@ func NewPostgresStorage(db *sql.DB) Storage {
 		Post:    &PostStore{db: db},
 		User:    &UserStore{db: db},
 		Comment: &CommentStore{db: db},
+		Roles:   &RoleStore{db: db},
 	}
 }
 
