@@ -9,6 +9,7 @@ import (
 	"github.com/Martins-Iroka/social/internal/auth"
 	"github.com/Martins-Iroka/social/internal/mailer"
 	"github.com/Martins-Iroka/social/internal/store"
+	"github.com/Martins-Iroka/social/internal/store/cache"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -22,6 +23,7 @@ type application struct {
 	logger        *zap.SugaredLogger
 	mailer        mailer.Client
 	authenticator auth.Authenticator
+	cacheStorage  cache.Storage
 }
 
 type authConfig struct {
@@ -47,6 +49,13 @@ type config struct {
 	mail        mailConfig
 	frontendURL string
 	auth        authConfig
+	redisCfg    redisConfig
+}
+
+type redisConfig struct {
+	addr, pw string
+	db       int
+	enabled  bool
 }
 
 type mailConfig struct {
@@ -109,7 +118,7 @@ func (app *application) mount() http.Handler {
 			r.Put("/activate/{token}", app.activateUserHandler)
 
 			r.Route("/{userID}", func(r chi.Router) {
-				r.Use(app.authTokenMiddleware, app.userContextMiddleware)
+				r.Use(app.authTokenMiddleware)
 				r.Get("/", app.getUserHandler)
 
 				// Idempotency
