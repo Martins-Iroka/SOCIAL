@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// refer to testify github for testing
 func TestGetUser(t *testing.T) {
 	app := newTestApplication(t)
 	mux := app.mount()
