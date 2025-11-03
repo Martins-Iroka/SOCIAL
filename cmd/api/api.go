@@ -12,12 +12,14 @@ import (
 
 	"github.com/Martins-Iroka/social/docs"
 	"github.com/Martins-Iroka/social/internal/auth"
+	"github.com/Martins-Iroka/social/internal/env"
 	"github.com/Martins-Iroka/social/internal/mailer"
 	"github.com/Martins-Iroka/social/internal/ratelimiter"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/Martins-Iroka/social/internal/store/cache"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
@@ -95,6 +97,14 @@ func (app *application) mount() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{env.GetString("CORS_ALLOWED_ORIGIN", "http://localhost:5174")}, // Use this to allow specific origin hosts
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: false,
+		MaxAge:           300, // Maximum value not ignored by any of major browsers
+	}))
 	r.Use(app.RateLimiterMiddleware)
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
