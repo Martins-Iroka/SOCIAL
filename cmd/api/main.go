@@ -1,6 +1,8 @@
 package main
 
 import (
+	"expvar"
+	"runtime"
 	"time"
 
 	"github.com/Martins-Iroka/social/internal/auth"
@@ -134,6 +136,17 @@ func main() {
 		cacheStorage:  redisStore,
 		ratelimiter:   rateLimiter,
 	}
+
+	expvar.NewString("version").Set(version)
+	// I can check the number of open connections
+	expvar.Publish("database", expvar.Func(func() any {
+		return db.Stats()
+	}))
+
+	expvar.Publish("goroutines", expvar.Func(func() any {
+		return runtime.NumGoroutine()
+	}))
+
 	mux := app.mount()
 
 	logger.Fatal(app.run(mux))
