@@ -1,6 +1,10 @@
 include .envrc
 MIGRATIONS_PATH = ./cmd/migrate/migrations
 
+.PHONY: test
+test:
+	@go test -v ./...
+
 # .PHONY is a prefix to specify that migrate-create is an action. But the action is actually "migration" Don't use space rather use tab
 .PHONY: migrate-create
 migration:

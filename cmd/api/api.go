@@ -80,7 +80,7 @@ type dbConfig struct {
 	maxIdleTime  string
 }
 
-func (app *application) mount() http.Handler {
+func (app *application) mount() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
