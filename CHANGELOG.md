@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Martins-Iroka/SOCIAL/compare/v1.1.0...v1.2.0) (2025-11-03)
+
+
+### Features
+
+* update api version automatically ([f0547f8](https://github.com/Martins-Iroka/SOCIAL/commit/f0547f8fdbf376bd6039b48c15f16fdfefa41c63))
+
 ## [1.1.0](https://github.com/Martins-Iroka/SOCIAL/compare/v1.0.0...v1.1.0) (2025-11-03)
 
 
