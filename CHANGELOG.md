@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Martins-Iroka/SOCIAL/compare/v1.2.0...v1.3.0) (2025-11-03)
+
+
+### Features
+
+* dockerfile ([b47777b](https://github.com/Martins-Iroka/SOCIAL/commit/b47777bb070a716aea82fbe3119b6b03dacad759))
+
 ## [1.2.0](https://github.com/Martins-Iroka/SOCIAL/compare/v1.1.0...v1.2.0) (2025-11-03)
 
 
