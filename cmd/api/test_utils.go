@@ -6,24 +6,31 @@ import (
 	"testing"
 
 	"github.com/Martins-Iroka/social/internal/auth"
+	"github.com/Martins-Iroka/social/internal/ratelimiter"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/Martins-Iroka/social/internal/store/cache"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
 
-func newTestApplication(t *testing.T) *application {
+func newTestApplication(t *testing.T, config config) *application {
 	t.Helper()
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
 	mockStore := store.NewMockStore()
 	mockCacheStore := cache.NewMockStore()
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		config.rateLimiter.RequestsPerTimeFrame,
+		config.rateLimiter.TimeFrame,
+	)
 	testAuth := &auth.TestAuthenticator{}
 	return &application{
 		logger:        logger,
 		store:         mockStore,
 		cacheStorage:  mockCacheStore,
 		authenticator: testAuth,
+		config:        config,
+		ratelimiter:   rateLimiter,
 	}
 }
 

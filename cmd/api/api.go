@@ -13,6 +13,7 @@ import (
 	"github.com/Martins-Iroka/social/docs"
 	"github.com/Martins-Iroka/social/internal/auth"
 	"github.com/Martins-Iroka/social/internal/mailer"
+	"github.com/Martins-Iroka/social/internal/ratelimiter"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/Martins-Iroka/social/internal/store/cache"
 	"github.com/go-chi/chi/v5"
@@ -29,6 +30,7 @@ type application struct {
 	mailer        mailer.Client
 	authenticator auth.Authenticator
 	cacheStorage  cache.Storage
+	ratelimiter   ratelimiter.Limiter
 }
 
 type authConfig struct {
@@ -55,6 +57,7 @@ type config struct {
 	frontendURL string
 	auth        authConfig
 	redisCfg    redisConfig
+	rateLimiter ratelimiter.Config
 }
 
 type redisConfig struct {
@@ -92,12 +95,13 @@ func (app *application) mount() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(app.RateLimiterMiddleware)
 	// Set a timeout value on the request context (ctx), that will signal
 	// through ctx.Done() that the request has timed out and further
 	// processing should be stopped.
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Route("/v1", func(r chi.Router) {
-		r.With(app.basicAuthMiddleware()).Get("/health", app.healthCheckHandler)
+		r.Get("/health", app.healthCheckHandler)
 
 		docsURL := fmt.Sprintf("%s/swagger/doc.json", app.config.addr)
 		r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL(docsURL)))

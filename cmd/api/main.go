@@ -7,6 +7,7 @@ import (
 	"github.com/Martins-Iroka/social/internal/db"
 	"github.com/Martins-Iroka/social/internal/env"
 	"github.com/Martins-Iroka/social/internal/mailer"
+	"github.com/Martins-Iroka/social/internal/ratelimiter"
 	"github.com/Martins-Iroka/social/internal/store"
 	"github.com/Martins-Iroka/social/internal/store/cache"
 	"github.com/go-redis/redis/v8"
@@ -71,6 +72,11 @@ func main() {
 				iss:    "gophersocial",
 			},
 		},
+		rateLimiter: ratelimiter.Config{
+			RequestsPerTimeFrame: env.GetInt("RATELIMITER_REQUESTS_COUNT", 20),
+			TimeFrame:            time.Second * 5,
+			Enabled:              env.GetBool("RATE_LIMITER_ENABLED", true),
+		},
 	}
 
 	logger := zap.Must(zap.NewProduction()).Sugar()
@@ -101,6 +107,11 @@ func main() {
 
 	redisStore := cache.NewRedisStore(rdb)
 
+	rateLimiter := ratelimiter.NewFixedWindowLimiter(
+		cfg.rateLimiter.RequestsPerTimeFrame,
+		cfg.rateLimiter.TimeFrame,
+	)
+
 	store := store.NewPostgresStorage(db)
 	// Sendgrid
 	mailer := mailer.NewSendgrid(cfg.mail.sendGrid.apiKey, cfg.mail.fromEmail)
@@ -121,6 +132,7 @@ func main() {
 		mailer:        mailer,
 		authenticator: jwtAuthenticator,
 		cacheStorage:  redisStore,
+		ratelimiter:   rateLimiter,
 	}
 	mux := app.mount()
 
