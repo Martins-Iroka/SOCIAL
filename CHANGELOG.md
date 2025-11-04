@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/Martins-Iroka/SOCIAL/compare/v1.3.0...v1.3.1) (2025-11-04)
+
+
+### Bug Fixes
+
+* disabled redis local connection ([8ed9fcb](https://github.com/Martins-Iroka/SOCIAL/commit/8ed9fcbf0108f1deffd8908fef46721415e403f9))
+
 ## [1.3.0](https://github.com/Martins-Iroka/SOCIAL/compare/v1.2.0...v1.3.0) (2025-11-03)
 
 
